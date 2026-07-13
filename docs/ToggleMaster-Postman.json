@@ -1,0 +1,249 @@
+{
+  "info": {
+    "name": "ToggleMaster - Tech Challenge Fase 2",
+    "description": "Coleção para testar todos os microsserviços localmente (docker compose up)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost" },
+    { "key": "auth_port", "value": "8001" },
+    { "key": "flag_port", "value": "8002" },
+    { "key": "targeting_port", "value": "8003" },
+    { "key": "evaluation_port", "value": "8004" },
+    { "key": "analytics_port", "value": "8005" },
+    { "key": "master_key", "value": "dev-master-key-change-in-production" },
+    { "key": "api_key", "value": "tm_key_0f9681d4004339e5bc619f5660dcd05c3586a13dc35d175eb791ca8414999fa5", "type": "secret" }
+  ],
+  "item": [
+    {
+      "name": "Auth Service",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}:{{auth_port}}/health"
+          }
+        },
+        {
+          "name": "Create API Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{master_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"my-key\"\n}"
+            },
+            "url": "{{base_url}}:{{auth_port}}/admin/keys"
+          }
+        },
+        {
+          "name": "Validate API Key",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{api_key}}" }
+            ],
+            "url": "{{base_url}}:{{auth_port}}/validate"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Flag Service",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}:{{flag_port}}/health"
+          }
+        },
+        {
+          "name": "Create Flag",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"feature-x\",\n  \"description\": \"Minha feature\",\n  \"is_enabled\": true\n}"
+            },
+            "url": "{{base_url}}:{{flag_port}}/flags"
+          }
+        },
+        {
+          "name": "List All Flags",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{api_key}}" }
+            ],
+            "url": "{{base_url}}:{{flag_port}}/flags"
+          }
+        },
+        {
+          "name": "Get Flag by Name",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{api_key}}" }
+            ],
+            "url": "{{base_url}}:{{flag_port}}/flags/feature-x"
+          }
+        },
+        {
+          "name": "Update Flag",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_enabled\": false\n}"
+            },
+            "url": "{{base_url}}:{{flag_port}}/flags/feature-x"
+          }
+        },
+        {
+          "name": "Delete Flag",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{api_key}}" }
+            ],
+            "url": "{{base_url}}:{{flag_port}}/flags/feature-x"
+          }
+        },
+        {
+          "name": "[ERROR] Create Flag sem Auth",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"sem-auth\"\n}"
+            },
+            "url": "{{base_url}}:{{flag_port}}/flags"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Targeting Service",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}:{{targeting_port}}/health"
+          }
+        },
+        {
+          "name": "Create Targeting Rule",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flag_name\": \"feature-x\",\n  \"rules\": {\n    \"type\": \"PERCENTAGE\",\n    \"value\": 50\n  }\n}"
+            },
+            "url": "{{base_url}}:{{targeting_port}}/rules"
+          }
+        },
+        {
+          "name": "Get Rule by Flag Name",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{api_key}}" }
+            ],
+            "url": "{{base_url}}:{{targeting_port}}/rules/feature-x"
+          }
+        },
+        {
+          "name": "Update Rule",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rules\": {\n    \"type\": \"PERCENTAGE\",\n    \"value\": 100\n  },\n  \"is_enabled\": true\n}"
+            },
+            "url": "{{base_url}}:{{targeting_port}}/rules/feature-x"
+          }
+        },
+        {
+          "name": "Delete Rule",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{api_key}}" }
+            ],
+            "url": "{{base_url}}:{{targeting_port}}/rules/feature-x"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Evaluation Service",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}:{{evaluation_port}}/health"
+          }
+        },
+        {
+          "name": "Evaluate Flag",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}:{{evaluation_port}}/evaluate?user_id=user123&flag_name=feature-x"
+          }
+        },
+        {
+          "name": "Evaluate (outro user/bucket)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}:{{evaluation_port}}/evaluate?user_id=outro-user&flag_name=feature-x"
+          }
+        },
+        {
+          "name": "Evaluate (flag inexistente)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}:{{evaluation_port}}/evaluate?user_id=user123&flag_name=flag-que-nao-existe"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics Service",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}:{{analytics_port}}/health"
+          }
+        }
+      ]
+    }
+  ]
+}

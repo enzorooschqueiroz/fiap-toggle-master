@@ -1,0 +1,23 @@
+# Secrets
+k8s/**/secret.yaml
+*.env
+
+# Python
+__pycache__/
+*.pyc
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+go.sum
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,297 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-07-09T18:30:00.000Z",
+  "__export_source": "opencode",
+  "resources": [
+    {
+      "_id": "__env_1",
+      "_type": "environment",
+      "name": "ToggleMaster Local",
+      "data": {
+        "base_url": "http://localhost",
+        "auth_port": "8001",
+        "flag_port": "8002",
+        "targeting_port": "8003",
+        "evaluation_port": "8004",
+        "analytics_port": "8005",
+        "master_key": "dev-master-key-change-in-production",
+        "service_api_key": "tm_key_0f9681d4004339e5bc619f5660dcd05c3586a13dc35d175eb791ca8414999fa5"
+      }
+    },
+    {
+      "_id": "__group_1",
+      "_type": "request_group",
+      "name": "Auth Service",
+      "parentId": "__WORKSPACE_ID__"
+    },
+    {
+      "_id": "__group_2",
+      "_type": "request_group",
+      "name": "Flag Service",
+      "parentId": "__WORKSPACE_ID__"
+    },
+    {
+      "_id": "__group_3",
+      "_type": "request_group",
+      "name": "Targeting Service",
+      "parentId": "__WORKSPACE_ID__"
+    },
+    {
+      "_id": "__group_4",
+      "_type": "request_group",
+      "name": "Evaluation Service",
+      "parentId": "__WORKSPACE_ID__"
+    },
+    {
+      "_id": "__group_5",
+      "_type": "request_group",
+      "name": "Analytics Service",
+      "parentId": "__WORKSPACE_ID__"
+    },
+    {
+      "_id": "req_health_auth",
+      "_type": "request",
+      "parentId": "__group_1",
+      "name": "Health Check",
+      "url": "{{base_url}}:{{auth_port}}/health",
+      "method": "GET",
+      "headers": [],
+      "authentication": {},
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_create_key",
+      "_type": "request",
+      "parentId": "__group_1",
+      "name": "Create API Key",
+      "url": "{{base_url}}:{{auth_port}}/admin/keys",
+      "method": "POST",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{master_key}}" },
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"my-api-key\"\n}"
+      },
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_validate_key",
+      "_type": "request",
+      "parentId": "__group_1",
+      "name": "Validate API Key",
+      "url": "{{base_url}}:{{auth_port}}/validate",
+      "method": "GET",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{service_api_key}}" }
+      ],
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_health_flag",
+      "_type": "request",
+      "parentId": "__group_2",
+      "name": "Health Check",
+      "url": "{{base_url}}:{{flag_port}}/health",
+      "method": "GET",
+      "headers": [],
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_create_flag",
+      "_type": "request",
+      "parentId": "__group_2",
+      "name": "Create Flag",
+      "url": "{{base_url}}:{{flag_port}}/flags",
+      "method": "POST",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{service_api_key}}" },
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"feature-x\",\n  \"description\": \"Minha nova feature\",\n  \"is_enabled\": true\n}"
+      },
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_list_flags",
+      "_type": "request",
+      "parentId": "__group_2",
+      "name": "List All Flags",
+      "url": "{{base_url}}:{{flag_port}}/flags",
+      "method": "GET",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{service_api_key}}" }
+      ],
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_get_flag",
+      "_type": "request",
+      "parentId": "__group_2",
+      "name": "Get Flag by Name",
+      "url": "{{base_url}}:{{flag_port}}/flags/feature-x",
+      "method": "GET",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{service_api_key}}" }
+      ],
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_update_flag",
+      "_type": "request",
+      "parentId": "__group_2",
+      "name": "Update Flag",
+      "url": "{{base_url}}:{{flag_port}}/flags/feature-x",
+      "method": "PUT",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{service_api_key}}" },
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"is_enabled\": false,\n  \"description\": \"Desativado temporariamente\"\n}"
+      },
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_delete_flag",
+      "_type": "request",
+      "parentId": "__group_2",
+      "name": "Delete Flag",
+      "url": "{{base_url}}:{{flag_port}}/flags/feature-x",
+      "method": "DELETE",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{service_api_key}}" }
+      ],
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_health_targeting",
+      "_type": "request",
+      "parentId": "__group_3",
+      "name": "Health Check",
+      "url": "{{base_url}}:{{targeting_port}}/health",
+      "method": "GET",
+      "headers": [],
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_create_rule",
+      "_type": "request",
+      "parentId": "__group_3",
+      "name": "Create Targeting Rule",
+      "url": "{{base_url}}:{{targeting_port}}/rules",
+      "method": "POST",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{service_api_key}}" },
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"flag_name\": \"feature-x\",\n  \"rules\": {\n    \"type\": \"PERCENTAGE\",\n    \"value\": 50\n  }\n}"
+      },
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_get_rule",
+      "_type": "request",
+      "parentId": "__group_3",
+      "name": "Get Rule by Flag Name",
+      "url": "{{base_url}}:{{targeting_port}}/rules/feature-x",
+      "method": "GET",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{service_api_key}}" }
+      ],
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_update_rule",
+      "_type": "request",
+      "parentId": "__group_3",
+      "name": "Update Rule",
+      "url": "{{base_url}}:{{targeting_port}}/rules/feature-x",
+      "method": "PUT",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{service_api_key}}" },
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"rules\": {\n    \"type\": \"PERCENTAGE\",\n    \"value\": 100\n  },\n  \"is_enabled\": true\n}"
+      },
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_delete_rule",
+      "_type": "request",
+      "parentId": "__group_3",
+      "name": "Delete Rule",
+      "url": "{{base_url}}:{{targeting_port}}/rules/feature-x",
+      "method": "DELETE",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{service_api_key}}" }
+      ],
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_health_eval",
+      "_type": "request",
+      "parentId": "__group_4",
+      "name": "Health Check",
+      "url": "{{base_url}}:{{evaluation_port}}/health",
+      "method": "GET",
+      "headers": [],
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_evaluate",
+      "_type": "request",
+      "parentId": "__group_4",
+      "name": "Evaluate Flag",
+      "url": "{{base_url}}:{{evaluation_port}}/evaluate?user_id=user123&flag_name=feature-x",
+      "method": "GET",
+      "headers": [],
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_evaluate_multi",
+      "_type": "request",
+      "parentId": "__group_4",
+      "name": "Evaluate (test buckets)",
+      "url": "{{base_url}}:{{evaluation_port}}/evaluate?user_id=enzo123456&flag_name=feature-x",
+      "method": "GET",
+      "headers": [],
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_health_analytics",
+      "_type": "request",
+      "parentId": "__group_5",
+      "name": "Health Check",
+      "url": "{{base_url}}:{{analytics_port}}/health",
+      "method": "GET",
+      "headers": [],
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_create_flag_noauth",
+      "_type": "request",
+      "parentId": "__group_2",
+      "name": "[ERROR] Create Flag sem Auth",
+      "url": "{{base_url}}:{{flag_port}}/flags",
+      "method": "POST",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"no-auth-test\"\n}"
+      },
+      "settingStoreCookies": true
+    }
+  ]
+}

@@ -1,0 +1,139 @@
+services:
+
+  auth-db:
+    image: postgres:15-alpine
+    container_name: toggle-auth-db
+    environment:
+      POSTGRES_USER: toggle
+      POSTGRES_PASSWORD: toggle123
+      POSTGRES_DB: auth
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/auth/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - auth-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U toggle -d auth"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  flags-db:
+    image: postgres:15-alpine
+    container_name: toggle-flags-db
+    environment:
+      POSTGRES_USER: toggle
+      POSTGRES_PASSWORD: toggle123
+      POSTGRES_DB: flags
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./db/flags:/docker-entrypoint-initdb.d
+      - flags-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U toggle -d flags"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: toggle-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    container_name: toggle-dynamodb
+    ports:
+      - "8000:8000"
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /data"
+    volumes:
+      - dynamodb-data:/data
+
+  auth-service:
+    build: ./services/auth-service
+    container_name: toggle-auth-service
+    ports:
+      - "8001:8001"
+    environment:
+      PORT: "8001"
+      DATABASE_URL: "postgres://toggle:toggle123@auth-db:5432/auth?sslmode=disable"
+      MASTER_KEY: "dev-master-key-change-in-production"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+
+  flag-service:
+    build: ./services/flag-service
+    container_name: toggle-flag-service
+    ports:
+      - "8002:8002"
+    environment:
+      PORT: "8002"
+      DATABASE_URL: "postgres://toggle:toggle123@flags-db:5432/flags?sslmode=disable"
+      AUTH_SERVICE_URL: "http://auth-service:8001"
+    depends_on:
+      flags-db:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  targeting-service:
+    build: ./services/targeting-service
+    container_name: toggle-targeting-service
+    ports:
+      - "8003:8003"
+    environment:
+      PORT: "8003"
+      DATABASE_URL: "postgres://toggle:toggle123@flags-db:5432/flags?sslmode=disable"
+      AUTH_SERVICE_URL: "http://auth-service:8001"
+    depends_on:
+      flags-db:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  evaluation-service:
+    build: ./services/evaluation-service
+    container_name: toggle-evaluation-service
+    ports:
+      - "8004:8004"
+    environment:
+      PORT: "8004"
+      REDIS_URL: "redis://redis:6379/0"
+      FLAG_SERVICE_URL: "http://flag-service:8002"
+      TARGETING_SERVICE_URL: "http://targeting-service:8003"
+      SERVICE_API_KEY: "tm_key_0f9681d4004339e5bc619f5660dcd05c3586a13dc35d175eb791ca8414999fa5"
+    depends_on:
+      redis:
+        condition: service_healthy
+      flag-service:
+        condition: service_started
+      targeting-service:
+        condition: service_started
+
+  analytics-service:
+    build: ./services/analytics-service
+    container_name: toggle-analytics-service
+    ports:
+      - "8005:8005"
+    environment:
+      PORT: "8005"
+      AWS_REGION: "us-east-1"
+      AWS_SQS_URL: "http://localhost:0000/queue/dummy"
+      AWS_DYNAMODB_TABLE: "ToggleMasterAnalytics"
+      AWS_ACCESS_KEY_ID: "dummy"
+      AWS_SECRET_ACCESS_KEY: "dummy"
+    depends_on:
+      - dynamodb-local
+
+volumes:
+  auth-db-data:
+  flags-db-data:
+  dynamodb-data:
