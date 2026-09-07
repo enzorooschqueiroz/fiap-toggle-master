@@ -1,0 +1,189 @@
+name: CI DevSecOps - Python Services
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/flag-service/**"
+      - "services/targeting-service/**"
+      - "services/analytics-service/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "services/flag-service/**"
+      - "services/targeting-service/**"
+      - "services/analytics-service/**"
+
+concurrency:
+  group: ci-python-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ECR_REPO_PREFIX: togglemaster
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  ci:
+    name: CI (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [flag-service, targeting-service, analytics-service]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+      - name: Install dependencies
+        working-directory: services/${{ matrix.service }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8 bandit pytest
+
+      # 1. Build & Unit Test
+      - name: Build (compile check)
+        working-directory: services/${{ matrix.service }}
+        run: python -m py_compile app.py
+
+      - name: Unit Tests
+        working-directory: services/${{ matrix.service }}
+        run: python -m pytest --disable-warnings -q
+
+      # 2. Linter / Static Analysis
+      - name: Lint (flake8)
+        working-directory: services/${{ matrix.service }}
+        run: flake8 --max-line-length=120 app.py
+
+      # 3. Security Scan - SCA (dependencies)
+      - name: SCA - Trivy fs scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: fs
+          scan-ref: services/${{ matrix.service }}
+          format: sarif
+          output: trivy-scad.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Upload SCA SARIF to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-scad.sarif
+
+      # 4. Security Scan - SAST (source code)
+      - name: SAST - bandit
+        working-directory: services/${{ matrix.service }}
+        run: |
+          bandit -r app.py -f sarif -o bandit.sarif -lll
+          echo "Exit code (0 = no issues, 1 = issues found): $?"
+        continue-on-error: false
+
+      - name: Upload SAST SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: services/${{ matrix.service }}/bandit.sarif
+
+      # 5. Docker Build & Container Scan
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+        # Alternativa simples (access keys):
+        #   aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        #   aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Set image tag
+        id: image-tag
+        run: echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ env.AWS_ECR_REPO_PREFIX }}/${{ matrix.service }}
+          IMAGE_TAG: ${{ steps.image-tag.outputs.tag }}
+        run: |
+          docker build -f services/${{ matrix.service }}/Dockerfile \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            services/${{ matrix.service }}
+
+      - name: Container scan - Trivy image
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: image
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/${{ env.AWS_ECR_REPO_PREFIX }}/${{ matrix.service }}:${{ steps.image-tag.outputs.tag }}
+          format: sarif
+          output: trivy-image.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Upload image scan SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image.sarif
+
+      - name: Push image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ env.AWS_ECR_REPO_PREFIX }}/${{ matrix.service }}
+          IMAGE_TAG: ${{ steps.image-tag.outputs.tag }}
+        run: |
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+  # 6. Entrega: atualiza a tag no repositório GitOps
+  update-gitops:
+    name: Update GitOps tag (${{ matrix.service }})
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: ci
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [flag-service, targeting-service, analytics-service]
+
+    steps:
+      - name: Checkout GitOps repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/${{ vars.GITOPS_REPO || github.event.repository.name }}
+          token: ${{ secrets.GITOPS_TOKEN }}
+          ref: main
+
+      - name: Update image tag in base.yaml
+        working-directory: gitops/${{ matrix.service }}
+        run: |
+          sed -i "s|image: .*${{ matrix.service }}:.*|image: ${{ secrets.ECR_REGISTRY }}/togglemaster/${{ matrix.service }}:${GITHUB_SHA::12}|" base.yaml
+          git diff
+
+      - name: Commit and push
+        working-directory: gitops/${{ matrix.service }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add base.yaml
+          git commit -m "chore(${{ matrix.service }}): update image tag to ${GITHUB_SHA::12}" || echo "no changes"
+          git push origin main
