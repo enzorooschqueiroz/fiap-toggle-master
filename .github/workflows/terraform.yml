@@ -17,7 +17,7 @@ permissions:
 env:
   TF_VERSION: "1.6.6"
   AWS_REGION: us-east-1
-  TF_STATE_BUCKET: togglemaster-terraform-state
+  TF_STATE_BUCKET: togglemaster-tfstate-185796529499
   TF_LOCK_TABLE: terraform-lock
 
 jobs:

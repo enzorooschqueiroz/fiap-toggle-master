@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: auth-service
-          image: 000000000000.dkr.ecr.us-east-1.amazonaws.com/togglemaster/auth-service:latest
+          image: 185796529499.dkr.ecr.us-east-1.amazonaws.com/togglemaster/auth-service:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8001

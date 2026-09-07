@@ -2,7 +2,7 @@
 set -euo pipefail
 
 AWS_REGION="${AWS_REGION:-us-east-1}"
-STATE_BUCKET="${1:-togglemaster-terraform-state}"
+STATE_BUCKET="${1:-togglemaster-tfstate-185796529499}"
 LOCK_TABLE="${2:-terraform-lock}"
 
 echo "==> Bootstrapping Terraform remote state (bucket + lock table)..."
