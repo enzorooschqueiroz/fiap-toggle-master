@@ -168,6 +168,7 @@ kubectl apply -f k8s/ingress.yaml
 │   └── terraform.yml          # Plan/Apply da infra
 ├── scripts/                   # Scripts auxiliares
 │   ├── bootstrap-backend.sh   # Cria bucket S3 + tabela de lock
+│   ├── set-account-id.sh      # Corrige Account ID nos manifests
 │   └── update-image-tag.sh    # Atualiza tag no GitOps
 └── services/                  # Microservices source code
     ├── auth-service/          # Go - Authentication
@@ -192,6 +193,9 @@ kubectl apply -f k8s/ingress.yaml
 # 2. Configure as senhas
 cp terraform/terraform.tfvars.example terraform/terraform.tfvars
 # edite as senhas do RDS
+
+# 2. Corrija o Account ID nos manifests (conta pessoal AWS)
+./scripts/set-account-id.sh <SEU_ACCOUNT_ID>
 
 # 3. Provisione
 cd terraform

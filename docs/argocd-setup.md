@@ -9,6 +9,45 @@ a pasta `gitops/` do monorepo.
   ```bash
   aws eks update-kubeconfig --name togglemaster-dev-eks --region us-east-1
   ```
+- Account ID da conta AWS definido nos manifests:
+  ```bash
+  ./scripts/set-account-id.sh <SEU_ACCOUNT_ID>
+  ```
+
+## 0. Pré-requisitos do cluster
+
+Os `base.yaml` dos serviços usam `secretRef` e o `ingress.yaml` usa a classe
+`nginx`. Instale antes:
+
+### Secrets (1 por serviço)
+```bash
+kubectl create secret generic auth-service-secret -n auth \
+  --from-literal=DATABASE_URL='postgres://toggle_user:SENHA@HOST:5432/auth?sslmode=disable' \
+  --from-literal=MASTER_KEY='sua-master-key'
+
+kubectl create secret generic flag-service-secret -n flag \
+  --from-literal=DATABASE_URL='postgres://toggle_user:SENHA@HOST:5432/flags?sslmode=disable'
+
+kubectl create secret generic targeting-service-secret -n targeting \
+  --from-literal=DATABASE_URL='postgres://toggle_user:SENHA@HOST:5432/targeting?sslmode=disable'
+
+kubectl create secret generic evaluation-service-secret -n evaluation \
+  --from-literal=REDIS_URL='redis://ENDERECO_REDIS:6379/0' \
+  --from-literal=SERVICE_API_KEY='tm_key_...'
+
+kubectl create secret generic analytics-service-secret -n analytics \
+  --from-literal=AWS_ACCESS_KEY_ID='...' \
+  --from-literal=AWS_SECRET_ACCESS_KEY='...'
+```
+> Os endpoints (RDS/Redis/SQS) saem do `terraform output`:
+> ```bash
+> cd terraform && terraform output
+> ```
+
+### NGINX Ingress Controller
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/aws/deploy.yaml
+```
 
 ## 1. Instalar o ArgoCD
 
@@ -45,18 +84,30 @@ Acessar: `https://localhost:8080` (usuário: `admin`)
 Na interface ou via CLI (`argocd login`), adicione o repositório do monorepo:
 
 ```bash
-argocd repo add https://github.com/<SEU_USUARIO>/toggle-master.git \
+argocd repo add https://github.com/enzorooschqueiroz/fiap-toggle-master.git \
   --username <usuario> --password <token>
 ```
 
 ## 4. Criar a Application (GitOps)
 
-O manifesto pronta está em `gitops/argocd/application.yaml`. Edite o
-`repoURL` com seu usuário e aplique:
-
+O manifesto pronto está em `gitops/argocd/application.yaml`:
 ```bash
 kubectl apply -f gitops/argocd/application.yaml
 ```
+
+> **Nota:** como o `application.yaml` fica dentro da pasta `gitops/` que o
+> ArgoCD sincroniza, ele se gerencia a si mesmo. Para evitar isso, aplique o
+> Application manualmente (comando acima) e, opcionalmente, adicione exclusão
+> do namespace argocd no configmap `argocd-cm`:
+> ```yaml
+> resource.exclusions: |
+>   - apiGroups:
+>       - argoproj.io
+>     kinds:
+>       - Application
+>     clusters:
+>       - '*'
+> ```
 
 Isso criará uma `Application` que monitora a pasta `gitops/` do repositório
 com auto-sync habilitado (prune + selfHeal).

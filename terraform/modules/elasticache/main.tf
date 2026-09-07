@@ -25,6 +25,11 @@ variable "allowed_security_group_ids" {
   default = []
 }
 
+variable "allowed_cidr_blocks" {
+  type    = list(string)
+  default = []
+}
+
 variable "node_type" {
   type    = string
   default = "cache.t3.micro"
@@ -54,7 +59,7 @@ resource "aws_security_group" "redis" {
     to_port         = 6379
     protocol        = "tcp"
     security_groups = var.allowed_security_group_ids
-    cidr_blocks     = []
+    cidr_blocks     = var.allowed_cidr_blocks
   }
 
   egress {

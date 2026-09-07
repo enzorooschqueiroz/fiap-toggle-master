@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/<SEU_USUARIO>/toggle-master.git
+    repoURL: https://github.com/enzorooschqueiroz/fiap-toggle-master.git
     targetRevision: main
     path: gitops
   destination:

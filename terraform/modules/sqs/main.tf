@@ -29,26 +29,6 @@ resource "aws_sqs_queue" "analytics" {
   message_retention_seconds = 86400
   receive_wait_time_seconds = var.receive_wait_time_seconds
 
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "AllowServicePublish",
-      "Effect": "Allow",
-      "Principal": "*",
-      "Action": "sqs:SendMessage",
-      "Resource": "*",
-      "Condition": {
-        "ArnLike": {
-          "aws:SourceArn": "arn:aws:events:${var.environment}:*"
-        }
-      }
-    }
-  ]
-}
-EOF
-
   tags = {
     Environment = var.environment
     Project     = var.project_name

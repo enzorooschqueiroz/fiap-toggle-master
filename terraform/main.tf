@@ -35,7 +35,8 @@ variable "project_name" {
 }
 
 locals {
-  environment = var.environment
+  environment          = var.environment
+  database_cidr_access = module.networking.private_subnet_cidrs
 }
 
 module "networking" {
@@ -67,6 +68,7 @@ module "rds_auth" {
   vpc_id                     = module.networking.vpc_id
   private_subnet_ids         = module.networking.private_subnet_ids
   allowed_security_group_ids = [module.eks.cluster_security_group_id]
+  allowed_cidr_blocks        = local.database_cidr_access
 }
 
 module "rds_flags" {
@@ -80,6 +82,7 @@ module "rds_flags" {
   vpc_id                     = module.networking.vpc_id
   private_subnet_ids         = module.networking.private_subnet_ids
   allowed_security_group_ids = [module.eks.cluster_security_group_id]
+  allowed_cidr_blocks        = local.database_cidr_access
 }
 
 module "rds_targeting" {
@@ -93,6 +96,7 @@ module "rds_targeting" {
   vpc_id                     = module.networking.vpc_id
   private_subnet_ids         = module.networking.private_subnet_ids
   allowed_security_group_ids = [module.eks.cluster_security_group_id]
+  allowed_cidr_blocks        = local.database_cidr_access
 }
 
 module "redis" {
@@ -102,6 +106,7 @@ module "redis" {
   vpc_id                     = module.networking.vpc_id
   private_subnet_ids         = module.networking.private_subnet_ids
   allowed_security_group_ids = [module.eks.cluster_security_group_id]
+  allowed_cidr_blocks        = local.database_cidr_access
 }
 
 module "dynamodb" {

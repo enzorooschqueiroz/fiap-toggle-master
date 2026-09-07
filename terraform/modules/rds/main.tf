@@ -43,6 +43,11 @@ variable "allowed_security_group_ids" {
   default = []
 }
 
+variable "allowed_cidr_blocks" {
+  type    = list(string)
+  default = []
+}
+
 variable "instance_class" {
   type    = string
   default = "db.t3.micro"
@@ -78,7 +83,7 @@ resource "aws_security_group" "rds" {
     to_port         = 5432
     protocol        = "tcp"
     security_groups = var.allowed_security_group_ids
-    cidr_blocks     = []
+    cidr_blocks     = var.allowed_cidr_blocks
   }
 
   egress {
