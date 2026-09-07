@@ -2,6 +2,16 @@
 k8s/**/secret.yaml
 *.env
 
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate*
+terraform/.terraform.lock.hcl
+terraform/terraform.tfvars
+terraform/crash.log
+
+# GitOps secrets
+gitops/**/secret.yaml
+
 # Python
 __pycache__/
 *.pyc
@@ -12,7 +22,6 @@ __pycache__/
 *.dll
 *.so
 *.dylib
-go.sum
 
 # IDE
 .vscode/
