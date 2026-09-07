@@ -1,0 +1,8 @@
+# Copie para terraform.tfvars e preencha com valores reais
+# Jamais commite o terraform.tfvars real
+
+environment = "dev"
+
+auth_db_password      = "mude-essa-senha-1"
+flags_db_password     = "mude-essa-senha-2"
+targeting_db_password = "mude-essa-senha-3"
