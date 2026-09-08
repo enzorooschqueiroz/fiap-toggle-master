@@ -45,7 +45,7 @@ variable "node_min_size" {
 
 variable "node_instance_types" {
   type    = list(string)
-  default = ["t3.medium"]
+  default = ["t3.small"]
 }
 
 data "aws_caller_identity" "current" {}
