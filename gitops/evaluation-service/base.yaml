@@ -68,3 +68,5 @@ data:
   REDIS_URL: "redis://togglemaster-redis.llhawu.0001.use1.cache.amazonaws.com:6379/0"
   FLAG_SERVICE_URL: "http://flag-service.flag.svc.cluster.local:8002"
   TARGETING_SERVICE_URL: "http://targeting-service.targeting.svc.cluster.local:8003"
+  AWS_REGION: "us-east-1"
+  AWS_SQS_URL: "https://sqs.us-east-1.amazonaws.com/185796529499/toggle-master-analytics"
