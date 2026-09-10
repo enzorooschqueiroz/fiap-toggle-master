@@ -2,12 +2,12 @@ name: CI DevSecOps - Go Services
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "services/auth-service/**"
       - "services/evaluation-service/**"
   pull_request:
-    branches: [main]
+    branches: [master]
     paths:
       - "services/auth-service/**"
       - "services/evaluation-service/**"
@@ -90,11 +90,9 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-        # Alternativa simples (access keys):
-        #   aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        #   aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -145,7 +143,7 @@ jobs:
   # 6. Entrega: atualiza a tag no repositório GitOps
   update-gitops:
     name: Update GitOps tag (${{ matrix.service }})
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: ci
     runs-on: ubuntu-latest
     strategy:
@@ -158,7 +156,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/${{ vars.GITOPS_REPO || github.event.repository.name }}
           token: ${{ secrets.GITOPS_TOKEN }}
-          ref: main
+          ref: master
 
       - name: Update image tag in base.yaml
         working-directory: gitops/${{ matrix.service }}
@@ -173,4 +171,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add base.yaml
           git commit -m "chore(${{ matrix.service }}): update image tag to ${GITHUB_SHA::12}" || echo "no changes"
-          git push origin main
+          git push origin master

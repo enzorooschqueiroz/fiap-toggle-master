@@ -2,11 +2,11 @@ name: Terraform
 
 on:
   pull_request:
-    branches: [main]
+    branches: [master]
     paths:
       - "terraform/**"
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "terraform/**"
 
@@ -38,11 +38,9 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-        # Alternativa simples (access keys):
-        #   aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        #   aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -69,9 +67,9 @@ jobs:
             -var "targeting_db_password=${{ secrets.TARGETING_DB_PASSWORD }}"
         continue-on-error: true
 
-      # Aplica somente em push para main
+      # Aplica somente em push para master
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         run: |
           terraform apply -auto-approve -no-color -var "environment=${{ matrix.env }}" \
             -var "auth_db_password=${{ secrets.AUTH_DB_PASSWORD }}" \
