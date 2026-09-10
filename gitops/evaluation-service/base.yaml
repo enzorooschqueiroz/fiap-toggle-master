@@ -65,7 +65,6 @@ metadata:
   namespace: evaluation
 data:
   PORT: "8004"
-  REDIS_URL: "redis://<redis-endpoint>:6379/0"
+  REDIS_URL: "redis://togglemaster-redis.llhawu.0001.use1.cache.amazonaws.com:6379/0"
   FLAG_SERVICE_URL: "http://flag-service.flag.svc.cluster.local:8002"
   TARGETING_SERVICE_URL: "http://targeting-service.targeting.svc.cluster.local:8003"
-  SERVICE_API_KEY: "<api-key>"

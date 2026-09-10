@@ -9,7 +9,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/enzorooschqueiroz/fiap-toggle-master.git
-    targetRevision: main
+    targetRevision: master
     path: gitops
   destination:
     server: https://kubernetes.default.svc
