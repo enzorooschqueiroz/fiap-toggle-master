@@ -11,6 +11,8 @@ spec:
     repoURL: https://github.com/enzorooschqueiroz/fiap-toggle-master.git
     targetRevision: master
     path: gitops
+    directory:
+      recurse: true
   destination:
     server: https://kubernetes.default.svc
     namespace: auth
