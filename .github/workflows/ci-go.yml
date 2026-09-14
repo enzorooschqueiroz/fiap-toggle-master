@@ -127,6 +127,7 @@ jobs:
       - name: Container scan - Trivy image
         run: |
           trivy image --format sarif --output trivy-image.sarif \
+            --ignorefile .trivyignore \
             --severity CRITICAL --exit-code 1 --ignore-unfixed \
             ${{ steps.login-ecr.outputs.registry }}/${{ env.AWS_ECR_REPO_PREFIX }}/${{ matrix.service }}:${{ steps.image-tag.outputs.tag }}
 
