@@ -9,16 +9,16 @@ on:
     branches: [master]
     paths:
       - "terraform/**"
+  workflow_dispatch:
 
 permissions:
   id-token: write
   contents: read
 
 env:
-  TF_VERSION: "1.6.6"
+  TF_VERSION: "1.16.2"
   AWS_REGION: us-east-1
   TF_STATE_BUCKET: togglemaster-tfstate-185796529499
-  TF_LOCK_TABLE: terraform-lock
 
 jobs:
   terraform:
@@ -53,7 +53,7 @@ jobs:
         continue-on-error: true
 
       - name: Terraform Init
-        run: terraform init -backend-config="bucket=$TF_STATE_BUCKET" -backend-config="dynamodb_table=$TF_LOCK_TABLE" -backend-config="region=$AWS_REGION"
+        run: terraform init
 
       - name: Terraform Validate
         run: terraform validate -no-color
