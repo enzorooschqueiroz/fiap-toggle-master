@@ -67,9 +67,9 @@ jobs:
             -var "targeting_db_password=${{ secrets.TARGETING_DB_PASSWORD }}"
         continue-on-error: true
 
-      # Aplica somente em push para master
+      # Aplica em push para master (e em disparo manual p/ demonstração)
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/master'
         run: |
           terraform apply -auto-approve -no-color -var "environment=${{ matrix.env }}" \
             -var "auth_db_password=${{ secrets.AUTH_DB_PASSWORD }}" \
