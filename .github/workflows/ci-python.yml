@@ -72,7 +72,15 @@ jobs:
       # 3. Security Scan - SCA (dependencies)
       - name: Setup Trivy
         run: |
-          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          TRIVY_VERSION=0.74.0
+          mkdir -p "$HOME/.local/bin"
+          for i in $(seq 1 5); do
+            curl -fL --retry 3 --connect-timeout 15 \
+              "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
+              -o /tmp/trivy.tgz \
+              && tar -xzf /tmp/trivy.tgz -C "$HOME/.local/bin" trivy && break
+            sleep 5
+          done
           trivy --version
 
       - name: SCA - Trivy fs scan
