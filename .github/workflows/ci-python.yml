@@ -45,7 +45,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
+          python-version: "3.12"
 
       - name: Install dependencies
         working-directory: services/${{ matrix.service }}
@@ -96,6 +96,7 @@ jobs:
 
       - name: Upload SAST SARIF
         if: always()
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: services/${{ matrix.service }}/bandit.sarif
