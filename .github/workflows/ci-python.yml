@@ -182,4 +182,8 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add base.yaml
           git commit -m "chore(${{ matrix.service }}): update image tag to ${GITHUB_SHA::12}" || echo "no changes"
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase origin master || { sleep 3; continue; }
+            git push origin master && exit 0 || sleep 3
+          done
           git push origin master
