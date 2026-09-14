@@ -58,7 +58,7 @@ def require_auth(f):
 
 @app.route('/health')
 def health():
-    return jsonify({"status": "ok"})
+    return jsonify({"status": "ok", "service": "flag-service"})
 
 @app.route('/flags', methods=['POST'])
 @require_auth
