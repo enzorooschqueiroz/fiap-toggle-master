@@ -95,7 +95,7 @@ func main() {
 	mux.HandleFunc("/health", app.healthHandler)
 	mux.HandleFunc("/evaluate", app.evaluationHandler)
 
-	log.Printf("Serviço de Avaliação (Go) rodando na porta %s", port)
+	log.Printf("Serviço de Avaliação (Go) iniciado na porta %s | redis=%s", port, redisURL)
 	if err := http.ListenAndServe(":"+port, mux); err != nil {
 		log.Fatal(err)
 	}

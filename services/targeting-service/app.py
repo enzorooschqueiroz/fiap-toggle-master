@@ -193,4 +193,5 @@ def delete_rule(flag_name):
 
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 8003))
+    log.info(f"Servidor de Targeting iniciado na porta {port}")
     app.run(host='0.0.0.0', port=port, debug=False)
