@@ -193,5 +193,6 @@ def delete_rule(flag_name):
 
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 8003))
-    log.info(f"Servidor de Targeting iniciado na porta {port} | auth-service={os.getenv('AUTH_SERVICE_URL', 'http://auth.auth.svc.cluster.local:8001')}")
+    auth_url = os.getenv('AUTH_SERVICE_URL', 'http://auth.auth.svc.cluster.local:8001')
+    log.info(f"Servidor de Targeting iniciado na porta {port} | auth-service={auth_url}")
     app.run(host='0.0.0.0', port=port, debug=False)
