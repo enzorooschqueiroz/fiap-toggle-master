@@ -65,7 +65,9 @@ jobs:
 
       # 3. Security Scan - SCA (dependencies)
       - name: Setup Trivy
-        uses: aquasecurity/setup-trivy@v0.3.1
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          trivy --version
 
       - name: SCA - Trivy fs scan
         working-directory: services/${{ matrix.service }}
