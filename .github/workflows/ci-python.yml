@@ -70,7 +70,7 @@ jobs:
 
       # 3. Security Scan - SCA (dependencies)
       - name: SCA - Trivy fs scan
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           scan-type: fs
           scan-ref: services/${{ matrix.service }}
@@ -128,7 +128,7 @@ jobs:
             services/${{ matrix.service }}
 
       - name: Container scan - Trivy image
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           scan-type: image
           image-ref: ${{ steps.login-ecr.outputs.registry }}/${{ env.AWS_ECR_REPO_PREFIX }}/${{ matrix.service }}:${{ steps.image-tag.outputs.tag }}
