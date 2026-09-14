@@ -43,7 +43,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.21"
+          go-version: "1.23"
           cache-dependency-path: services/${{ matrix.service }}/go.sum
 
       # 1. Build & Unit Test
@@ -57,10 +57,10 @@ jobs:
 
       # 2. Linter / Static Analysis
       - name: Lint (golangci-lint)
-        uses: golangci/golangci-lint-action@v4
+        uses: golangci/golangci-lint-action@v7
         with:
           working-directory: services/${{ matrix.service }}
-          version: v1.56
+          version: v1.64
 
       # 3. Security Scan - SCA (dependencies)
       - name: Setup Trivy
