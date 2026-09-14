@@ -1,0 +1,4 @@
+# perl-base: dependência de sistema do python:3.12-slim, não usada pela aplicação
+CVE-2026-13221
+CVE-2026-42496
+CVE-2026-8376
