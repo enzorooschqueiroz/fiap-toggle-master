@@ -30,3 +30,7 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+*.tfplan
+*.plan
+/services/auth-service/auth-service
+/services/evaluation-service/evaluation-service
