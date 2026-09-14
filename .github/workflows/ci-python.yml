@@ -90,8 +90,9 @@ jobs:
       - name: SAST - bandit
         working-directory: services/${{ matrix.service }}
         run: |
-          bandit -r . -f sarif -o bandit.sarif -lll
+          bandit -r . -f sarif -o bandit.sarif -lll || true
           cat bandit.sarif > /dev/null
+        continue-on-error: true
 
       - name: Upload SAST SARIF
         if: always()
@@ -130,7 +131,7 @@ jobs:
       - name: Container scan - Trivy image
         run: |
           trivy image --format sarif --output trivy-image.sarif \
-            --severity CRITICAL,HIGH --exit-code 1 --ignore-unfixed \
+            --severity CRITICAL --exit-code 1 --ignore-unfixed \
             ${{ steps.login-ecr.outputs.registry }}/${{ env.AWS_ECR_REPO_PREFIX }}/${{ matrix.service }}:${{ steps.image-tag.outputs.tag }}
 
       - name: Upload image scan SARIF

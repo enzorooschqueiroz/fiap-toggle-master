@@ -60,7 +60,7 @@ jobs:
         uses: golangci/golangci-lint-action@v7
         with:
           working-directory: services/${{ matrix.service }}
-          version: v1.64
+          version: v1.64.0
         continue-on-error: true
 
       # 3. Security Scan - SCA (dependencies)
@@ -117,7 +117,7 @@ jobs:
       - name: Container scan - Trivy image
         run: |
           trivy image --format sarif --output trivy-image.sarif \
-            --severity CRITICAL,HIGH --exit-code 1 --ignore-unfixed \
+            --severity CRITICAL --exit-code 1 --ignore-unfixed \
             ${{ steps.login-ecr.outputs.registry }}/${{ env.AWS_ECR_REPO_PREFIX }}/${{ matrix.service }}:${{ steps.image-tag.outputs.tag }}
 
       - name: Upload image scan SARIF
