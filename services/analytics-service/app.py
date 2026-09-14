@@ -27,7 +27,7 @@ try:
     session = boto3.Session(region_name=AWS_REGION)
     sqs_client = session.client("sqs")
     dynamodb_client = session.client("dynamodb")
-    log.info(f"Clientes Boto3 inicializados na região {AWS_REGION}")
+    log.info(f"Clientes Boto3 inicializados | região={AWS_REGION} queue={SQS_QUEUE_URL} table={DYNAMODB_TABLE_NAME}")
 except NoCredentialsError:
     log.critical("Credenciais da AWS não encontradas. Verifique seu ambiente.")
     sys.exit(1)
