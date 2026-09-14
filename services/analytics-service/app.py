@@ -106,7 +106,7 @@ app = Flask(__name__)
 @app.route('/health')
 def health():
     # Uma verificação de saúde real poderia checar a conexão com o DynamoDB/SQS
-    return jsonify({"status": "ok"})
+    return jsonify({"status": "ok", "service": "analytics-service"})
 
 def start_worker():
     """ Inicia o worker SQS em uma thread separada """
