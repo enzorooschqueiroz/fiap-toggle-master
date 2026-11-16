@@ -18,8 +18,13 @@ import (
 // setupTelemetry configura traces e métricas OTLP (gRPC). Endpoint, headers e
 // atributos de recurso vêm das variáveis padrão OTEL_* do ambiente.
 func setupTelemetry(ctx context.Context, serviceName string) (func(context.Context) error, error) {
-	res, err := resource.Merge(resource.Default(), resource.NewWithAttributes(
-		semconv.SchemaURL, semconv.ServiceName(serviceName)))
+	// resource.New (e não Merge com resource.Default) evita conflito de Schema URL
+	// entre o semconv importado aqui e o usado internamente pelo SDK.
+	res, err := resource.New(ctx,
+		resource.WithTelemetrySDK(),
+		resource.WithAttributes(semconv.ServiceName(serviceName)),
+		resource.WithFromEnv(), // OTEL_SERVICE_NAME / OTEL_RESOURCE_ATTRIBUTES têm precedência
+	)
 	if err != nil {
 		return nil, err
 	}
