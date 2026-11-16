@@ -169,6 +169,25 @@ resource "aws_iam_role_policy_attachment" "eks_node_cw" {
   role       = aws_iam_role.eks_node_group.name
 }
 
+# Hop limit 2: pods (rede própria) precisam alcançar o IMDSv2 para usar a role do nó.
+resource "aws_launch_template" "nodes" {
+  name_prefix = "${var.project_name}-nodes-"
+
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Environment = var.environment
+      Project     = var.project_name
+    }
+  }
+}
+
 resource "aws_eks_node_group" "main" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "${var.project_name}-node-group"
@@ -182,6 +201,11 @@ resource "aws_eks_node_group" "main" {
   }
 
   instance_types = var.node_instance_types
+
+  launch_template {
+    id      = aws_launch_template.nodes.id
+    version = aws_launch_template.nodes.latest_version
+  }
 
   update_config {
     max_unavailable = 1
