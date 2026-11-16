@@ -143,3 +143,25 @@ variable "targeting_db_password" {
   type      = string
   sensitive = true
 }
+# Permissão mínima para evaluation (envio) e analytics (consumo + DynamoDB)
+# via role dos nós, evitando access keys estáticas em Secrets.
+resource "aws_iam_role_policy" "node_app_messaging" {
+  name = "togglemaster-app-messaging"
+  role = module.eks.node_role_name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["sqs:SendMessage", "sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"]
+        Resource = module.sqs.queue_arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["dynamodb:PutItem"]
+        Resource = module.dynamodb.table_arn
+      }
+    ]
+  })
+}
