@@ -1,0 +1,95 @@
+# OpenTelemetry Collector: peça central de telemetria.
+#   apps --OTLP--> collector (DaemonSet, hostPort 4317/4318)
+#   pods (stdout) --filelog--> collector
+#   collector: traces -> New Relic | métricas -> Prometheus + New Relic | logs -> Loki + New Relic
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: otel-collector
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  source:
+    repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
+    chart: opentelemetry-collector
+    targetRevision: 0.178.3
+    helm:
+      releaseName: otel-collector
+      valuesObject:
+        mode: daemonset
+        image:
+          repository: otel/opentelemetry-collector-contrib
+        presets:
+          logsCollection:
+            enabled: true          # filelog em /var/log/pods: logs de TODOS os contêineres
+            includeCollectorLogs: false
+          kubernetesAttributes:
+            enabled: true          # namespace, pod, deployment em cada sinal
+            extractAllPodLabels: false
+        extraEnvsFrom:
+          - secretRef:
+              name: newrelic-license   # NEW_RELIC_LICENSE_KEY
+        ports:
+          jaeger-compact: { enabled: false }
+          jaeger-thrift: { enabled: false }
+          jaeger-grpc: { enabled: false }
+          zipkin: { enabled: false }
+        resources:
+          requests: { cpu: 100m, memory: 256Mi }
+          limits: { memory: 512Mi }
+        config:
+          processors:
+            memory_limiter:
+              check_interval: 5s
+              limit_percentage: 80
+              spike_limit_percentage: 25
+            batch:
+              send_batch_size: 1024
+              timeout: 5s
+            resource:
+              attributes:
+                - key: deployment.environment
+                  value: dev
+                  action: upsert
+                - key: k8s.cluster.name
+                  value: togglemaster-dev-eks
+                  action: upsert
+          exporters:
+            otlphttp/newrelic:
+              endpoint: https://otlp.nr-data.net
+              headers:
+                api-key: ${env:NEW_RELIC_LICENSE_KEY}
+              compression: gzip
+            prometheusremotewrite:
+              endpoint: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/write
+              resource_to_telemetry_conversion:
+                enabled: true      # vira label service_name nas métricas
+            otlphttp/loki:
+              endpoint: http://loki-gateway.monitoring.svc.cluster.local/otlp
+            debug:
+              verbosity: basic
+          service:
+            pipelines:
+              traces:
+                receivers: [otlp]
+                processors: [memory_limiter, k8sattributes, resource, batch]
+                exporters: [otlphttp/newrelic]
+              metrics:
+                receivers: [otlp]
+                processors: [memory_limiter, k8sattributes, resource, batch]
+                exporters: [prometheusremotewrite, otlphttp/newrelic]
+              logs:
+                receivers: [otlp, filelog]
+                processors: [memory_limiter, k8sattributes, resource, batch]
+                exporters: [otlphttp/loki, otlphttp/newrelic]
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
