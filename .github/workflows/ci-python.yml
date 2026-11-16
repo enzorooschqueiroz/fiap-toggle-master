@@ -7,12 +7,14 @@ on:
       - "services/flag-service/**"
       - "services/targeting-service/**"
       - "services/analytics-service/**"
+      - "services/self-healer/**"
   pull_request:
     branches: [master]
     paths:
       - "services/flag-service/**"
       - "services/targeting-service/**"
       - "services/analytics-service/**"
+      - "services/self-healer/**"
   workflow_dispatch:
 
 concurrency:
@@ -36,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [flag-service, targeting-service, analytics-service]
+        service: [flag-service, targeting-service, analytics-service, self-healer]
 
     steps:
       - name: Checkout
@@ -179,7 +181,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [flag-service, targeting-service, analytics-service]
+        service: [flag-service, targeting-service, analytics-service, self-healer]
 
     steps:
       - name: Checkout GitOps repo
