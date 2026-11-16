@@ -155,7 +155,7 @@ spec:
         runAsUser: 10001
       containers:
         - name: self-healer
-          image: 185796529499.dkr.ecr.us-east-1.amazonaws.com/togglemaster/self-healer:latest
+          image: 185796529499.dkr.ecr.us-east-1.amazonaws.com/togglemaster/self-healer:e9b364aa7473
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
