@@ -46,14 +46,14 @@ kubectl create secret generic analytics-service-secret -n analytics \
 
 ### NGINX Ingress Controller
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/aws/deploy.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.15.1/deploy/static/provider/aws/deploy.yaml
 ```
 
 ## 1. Instalar o ArgoCD
 
 ```bash
 kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.13.4/manifests/install.yaml
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v3.6.1/manifests/install.yaml --server-side --force-conflicts
 ```
 
 Aguardar os pods ficarem prontos:
