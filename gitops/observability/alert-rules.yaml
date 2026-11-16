@@ -1,0 +1,48 @@
+# Alertas do ToggleMaster. Fonte: métricas OTel (http.server.request.duration) via OTel Collector.
+# critical -> PagerDuty + Discord + self-healer | warning -> só Discord (evita alert fatigue)
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: togglemaster-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  groups:
+    - name: togglemaster.slo
+      rules:
+        - alert: ToggleMasterHigh5xxRate
+          expr: |
+            (
+              sum by (service_name) (rate(http_server_request_duration_seconds_count{service_namespace="togglemaster", http_response_status_code=~"5.."}[1m]))
+              /
+              sum by (service_name) (rate(http_server_request_duration_seconds_count{service_namespace="togglemaster"}[1m]))
+            ) > 0.05
+            and
+            sum by (service_name) (rate(http_server_request_duration_seconds_count{service_namespace="togglemaster"}[1m])) > 0.1
+          for: 2m
+          labels:
+            severity: critical
+            team: togglemaster
+          annotations:
+            summary: "{{ $labels.service_name }}: {{ $value | humanizePercentage }} das requisições com erro 5xx"
+            description: >-
+              A taxa de erros HTTP 5xx do {{ $labels.service_name }} está acima de 5% há mais de 2 minutos.
+              Self-healing automático: rollout restart do deployment (cooldown 10 min).
+            runbook_url: https://github.com/enzorooschqueiroz/fiap-toggle-master/blob/master/docs/runbooks/high-5xx.md
+            dashboard_url: http://localhost:3000/d/togglemaster-health
+        - alert: ToggleMasterHighLatencyP95
+          expr: |
+            histogram_quantile(0.95,
+              sum by (le, service_name) (rate(http_server_request_duration_seconds_bucket{service_namespace="togglemaster"}[5m]))
+            ) > 1
+          for: 5m
+          labels:
+            severity: warning
+            team: togglemaster
+          annotations:
+            summary: "{{ $labels.service_name }}: latência p95 em {{ $value | humanizeDuration }}"
+            description: "Latência p95 acima de 1s por 5 minutos. Não pagina: apenas notificação no Discord."
+            runbook_url: https://github.com/enzorooschqueiroz/fiap-toggle-master/blob/master/docs/runbooks/high-5xx.md

@@ -1,0 +1,73 @@
+# Prometheus (métricas) + Alertmanager (roteamento de alertas) + Grafana (visualização)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 93.3.0
+    helm:
+      releaseName: kube-prometheus-stack
+      valuesObject:
+        fullnameOverride: kube-prometheus-stack
+        # Componentes do control plane gerenciado do EKS não são acessíveis
+        kubeEtcd: { enabled: false }
+        kubeControllerManager: { enabled: false }
+        kubeScheduler: { enabled: false }
+        kubeProxy: { enabled: false }
+        prometheus:
+          prometheusSpec:
+            enableRemoteWriteReceiver: true   # recebe métricas do OTel Collector
+            retention: 2d
+            ruleSelectorNilUsesHelmValues: false
+            serviceMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelectorNilUsesHelmValues: false
+            resources:
+              requests: { cpu: 200m, memory: 768Mi }
+              limits: { memory: 1536Mi }
+        alertmanager:
+          alertmanagerSpec:
+            useExistingSecret: true
+            configSecret: alertmanager-togglemaster   # criado por scripts/create-observability-secrets.sh
+            resources:
+              requests: { cpu: 20m, memory: 64Mi }
+        grafana:
+          admin:
+            existingSecret: grafana-admin
+            userKey: admin-user
+            passwordKey: admin-password
+          defaultDashboardsTimezone: America/Sao_Paulo
+          sidecar:
+            dashboards:
+              enabled: true
+              label: grafana_dashboard
+              searchNamespace: ALL
+          additionalDataSources:
+            - name: Loki
+              uid: loki
+              type: loki
+              access: proxy
+              url: http://loki-gateway.monitoring.svc.cluster.local
+              jsonData:
+                maxLines: 1000
+          resources:
+            requests: { cpu: 50m, memory: 192Mi }
+        prometheusOperator:
+          resources:
+            requests: { cpu: 50m, memory: 96Mi }
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

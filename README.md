@@ -1,7 +1,7 @@
 <div align="center">
   <h1>ToggleMaster</h1>
   <p><strong>Feature Flag Management Platform</strong></p>
-  <p>FIAP Tech Challenge - Fase 2 & 3</p>
+  <p>FIAP Tech Challenge - Fases 2, 3 & 4</p>
   <br>
 </div>
 
@@ -109,17 +109,7 @@ curl "http://localhost:8004/evaluate?user_id=user-123&flag_name=enable-new-dashb
 
 ## Kubernetes Deployment
 
-The `k8s/` directory contains manifests for deploying on AWS EKS:
-
-```bash
-kubectl apply -f k8s/00-namespaces.yaml
-kubectl apply -f k8s/auth-service/
-kubectl apply -f k8s/flag-service/
-kubectl apply -f k8s/targeting-service/
-kubectl apply -f k8s/evaluation-service/
-kubectl apply -f k8s/analytics-service/
-kubectl apply -f k8s/ingress.yaml
-```
+Os manifests vivem apenas em `gitops/` (fonte única da verdade), sincronizados pelo ArgoCD — veja a seção Fase 3.
 
 ### Prerequisites
 
@@ -140,7 +130,6 @@ kubectl apply -f k8s/ingress.yaml
 │   └── flags/                 # flags + targeting schema
 ├── docker-compose.yml         # Local development environment
 ├── docs/                      # API collections (Postman, Insomnia) + setup guides
-├── k8s/                       # Kubernetes manifests (legado fase 2)
 ├── gitops/                    # [FASE 3] Manifests GitOps monitorados pelo ArgoCD
 │   ├── argocd/application.yaml
 │   ├── auth-service/base.yaml
@@ -224,6 +213,61 @@ less docs/argocd-setup.md
 
 Fluxo: CI faz push da imagem no ECR → CI atualiza a tag em `gitops/<service>/base.yaml` → ArgoCD detecta e sincroniza no cluster.
 
+## Fase 4 - Observabilidade, APM e Self-Healing
+
+"Se um serviço ficar lento, precisamos ver o Trace; se der erro, os Logs; se um limite for atingido, acordar o time; e o sistema deve tentar se curar."
+
+### Arquitetura de telemetria
+
+```
+ auth (Go) ─┐  OTLP gRPC (hostIP:4317)        ┌──────────── OTel Collector (DaemonSet) ────────────┐
+ flag (Py) ─┤ ─────────────────────────────▶  │ receivers:  otlp  +  filelog (/var/log/pods)       │
+ targ (Py) ─┤   traces + métricas             │ processors: memory_limiter → k8sattributes →       │
+ eval (Go) ─┤                                 │             resource → batch                       │
+ anal (Py) ─┘  stdout de todos os pods ─────▶ │ exporters:                                         │
+                                              │   traces   ─▶ New Relic (OTLP)                     │
+                                              │   métricas ─▶ Prometheus (remote write) + NR       │
+                                              │   logs     ─▶ Loki (OTLP) + NR                     │
+                                              └────────────────────────────────────────────────────┘
+ Prometheus ─▶ regra ToggleMasterHigh5xxRate ─▶ Alertmanager ─┬─▶ PagerDuty (incidente)
+                                                              ├─▶ Discord (ChatOps)
+                                                              └─▶ self-healer ─▶ rollout restart
+ Grafana: dashboard "ToggleMaster — Saúde do Ecossistema" (Prometheus + Loki + Alertmanager)
+```
+
+| Peça | Onde | Escolha |
+|---|---|---|
+| Métricas/alertas/visualização | `gitops/observability/kube-prometheus-stack.yaml` | Prometheus + Alertmanager + Grafana |
+| Logs | `gitops/observability/loki.yaml` | Loki single binary (ingestão OTLP) |
+| Telemetria central | `gitops/observability/otel-collector.yaml` | OTel Collector contrib, DaemonSet |
+| APM | New Relic | OTLP nativo, free tier permanente |
+| Incidentes | PagerDuty (Events API v2) | OpsGenie em descontinuação |
+| ChatOps | Discord | `discord_configs` nativo do Alertmanager |
+| Self-healing | `services/self-healer` + `gitops/self-healer/` | webhook in-cluster, RBAC mínimo, cooldown 10 min |
+
+### Instrumentação
+
+- **Go (auth, evaluation):** SDK OTel + `otelhttp` (server e client, propaga `traceparent`), `redisotel`, `otelsql`; contexto W3C injetado nos `MessageAttributes` do SQS.
+- **Python (flag, targeting, analytics):** zero-code com `opentelemetry-instrument` (Flask, requests, psycopg2, botocore); analytics continua o trace a partir do SQS.
+- **Chaos:** `POST /admin/chaos {"error_rate": 0-100}` (master key) no auth e no flag — falha em memória, curada pelo restart.
+
+### Subindo a Fase 4
+
+```bash
+cp .env.observability.example .env.observability     # preencher NR, PagerDuty, Discord
+AWS_PROFILE=pessoal ./scripts/create-service-secrets.sh
+./scripts/create-observability-secrets.sh
+kubectl apply -f gitops/argocd/application.yaml       # ArgoCD sincroniza serviços + observabilidade
+./scripts/bootstrap-api-key.sh                        # API key do evaluation-service
+```
+
+Roteiro da demonstração: [`docs/fase4-demo.md`](docs/fase4-demo.md) · Runbook: [`docs/runbooks/high-5xx.md`](docs/runbooks/high-5xx.md)
+
+### Feedback da Fase 3 aplicado
+
+- SCA (`trivy fs`) e SAST (`bandit`) agora **bloqueiam** o pipeline (gate separado do relatório SARIF).
+- Pasta `k8s/` removida: `gitops/` é a única fonte da verdade.
+
 ## Tech Stack
 
 - **Languages:** Go 1.21, Python 3.9
@@ -235,8 +279,9 @@ Fluxo: CI faz push da imagem no ECR → CI atualiza a tag em `gitops/<service>/b
 - **IaC:** Terraform (VPC, EKS, RDS, ElastiCache, DynamoDB, SQS, ECR)
 - **CI/CD:** GitHub Actions (DevSecOps)
 - **GitOps:** ArgoCD
+- **Observabilidade:** OpenTelemetry, Prometheus, Loki, Grafana, New Relic, PagerDuty, Discord
 
 
 <div align="center">
-  <p><strong>FIAP - Tech Challenge Fase 3</strong></p>
+  <p><strong>FIAP - Tech Challenge Fase 4</strong></p>
 </div>

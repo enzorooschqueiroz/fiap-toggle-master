@@ -9,6 +9,8 @@ import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 from flask import Flask, jsonify
 from dotenv import load_dotenv
+from opentelemetry import propagate, trace
+from opentelemetry.trace import SpanKind
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 log = logging.getLogger(__name__)
@@ -36,7 +38,34 @@ except Exception as e:
     sys.exit(1)
 
 
+tracer = trace.get_tracer("analytics-service")
+
+
+def extract_context(message):
+    """Recupera o contexto W3C (traceparent) injetado pelo evaluation-service
+    nos MessageAttributes; mensagens sem atributos geram um trace novo."""
+    attrs = message.get("MessageAttributes") or {}
+    carrier = {k: v["StringValue"] for k, v in attrs.items() if isinstance(v, dict) and "StringValue" in v}
+    return propagate.extract(carrier)
+
+
 def process_message(message):
+    """ Processa uma mensagem SQS dentro de um span CONSUMER ligado ao trace de origem """
+    with tracer.start_as_current_span(
+        "toggle-events-queue process",
+        context=extract_context(message),
+        kind=SpanKind.CONSUMER,
+        attributes={
+            "messaging.system": "aws_sqs",
+            "messaging.destination.name": "toggle-events-queue",
+            "messaging.operation.type": "process",
+            "messaging.message.id": message.get("MessageId", ""),
+        },
+    ):
+        _process_message(message)
+
+
+def _process_message(message):
     """ Processa uma única mensagem SQS e a insere no DynamoDB """
     try:
         log.info(f"Processando mensagem ID: {message['MessageId']}")
@@ -82,7 +111,8 @@ def sqs_worker_loop():
             response = sqs_client.receive_message(
                 QueueUrl=SQS_QUEUE_URL,
                 MaxNumberOfMessages=10,
-                WaitTimeSeconds=20
+                WaitTimeSeconds=20,
+                MessageAttributeNames=["All"]
             )
             
             messages = response.get('Messages', [])

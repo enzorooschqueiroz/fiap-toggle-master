@@ -12,6 +12,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/go-redis/redis/v8"
 	"github.com/joho/godotenv"
+	"github.com/go-redis/redis/extra/redisotel/v8"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 var ctx = context.Background()
@@ -58,11 +60,22 @@ func main() {
 		log.Fatal("AWS_REGION deve ser definida para usar SQS")
 	}
 
+	shutdown, err := setupTelemetry(ctx, "evaluation-service")
+	if err != nil {
+		log.Fatalf("Falha ao iniciar OpenTelemetry: %v", err)
+	}
+	defer func() {
+		sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = shutdown(sctx)
+	}()
+
 	opt, err := redis.ParseURL(redisURL)
 	if err != nil {
 		log.Fatalf("Não foi possível parsear a URL do Redis: %v", err)
 	}
 	rdb := redis.NewClient(opt)
+	rdb.AddHook(redisotel.NewTracingHook())
 	if _, err := rdb.Ping(ctx).Result(); err != nil {
 		log.Fatalf("Não foi possível conectar ao Redis: %v", err)
 	}
@@ -79,7 +92,8 @@ func main() {
 	}
 
 	httpClient := &http.Client{
-		Timeout: 5 * time.Second,
+		Timeout:   5 * time.Second,
+		Transport: otelhttp.NewTransport(http.DefaultTransport),
 	}
 
 	app := &App{
@@ -96,7 +110,11 @@ func main() {
 	mux.HandleFunc("/evaluate", app.evaluationHandler)
 
 	log.Printf("Serviço de Avaliação (Go) iniciado na porta %s | redis=%s", port, redisURL)
-	if err := http.ListenAndServe(":"+port, mux); err != nil {
+	handler := otelhttp.NewHandler(mux, "evaluation-service",
+		otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
+			return r.Method + " " + r.URL.Path
+		}))
+	if err := http.ListenAndServe(":"+port, handler); err != nil {
 		log.Fatal(err)
 	}
 }

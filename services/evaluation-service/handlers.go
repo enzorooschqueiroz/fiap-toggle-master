@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
 type EvaluationResponse struct {
@@ -29,7 +32,7 @@ func (a *App) evaluationHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := a.getDecision(userID, flagName)
+	result, err := a.getDecision(r.Context(), userID, flagName)
 	if err != nil {
 		if _, ok := err.(*NotFoundError); ok {
 			result = false
@@ -41,7 +44,9 @@ func (a *App) evaluationHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Isso não bloqueia a resposta para o cliente.
-	go a.sendEvaluationEvent(userID, flagName, result)
+	// Contexto desacoplado do request (que é cancelado ao responder), mas com o mesmo trace.
+	evtCtx := trace.ContextWithSpanContext(context.Background(), trace.SpanContextFromContext(r.Context()))
+	go a.sendEvaluationEvent(evtCtx, userID, flagName, result)
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(EvaluationResponse{

@@ -5,3 +5,5 @@ python-dotenv==0.21.0
 boto3==1.26.50
 
 setuptools==68.2.2
+opentelemetry-distro==0.66b2
+opentelemetry-exporter-otlp==1.45.2

@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: analytics-service
-          image: 185796529499.dkr.ecr.us-east-1.amazonaws.com/togglemaster/analytics-service:6741051fb04b
+          image: 185796529499.dkr.ecr.us-east-1.amazonaws.com/togglemaster/analytics-service:e9b364aa7473
           imagePullPolicy: Always
           ports:
             - containerPort: 8005
@@ -24,6 +24,27 @@ spec:
                 name: analytics-service-config
             - secretRef:
                 name: analytics-service-secret
+          env:
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: OTEL_SERVICE_NAME
+              value: analytics-service
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://$(NODE_IP):4317
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: grpc
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: deployment.environment=dev,service.namespace=togglemaster
+            - name: OTEL_SEMCONV_STABILITY_OPT_IN
+              value: http
+            - name: OTEL_PYTHON_LOG_CORRELATION
+              value: "true"
+            - name: OTEL_LOGS_EXPORTER
+              value: none
+            - name: OTEL_METRIC_EXPORT_INTERVAL
+              value: "15000"
           resources:
             requests:
               cpu: 100m

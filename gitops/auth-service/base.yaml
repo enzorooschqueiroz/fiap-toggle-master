@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: auth-service
-          image: 185796529499.dkr.ecr.us-east-1.amazonaws.com/togglemaster/auth-service:6cbf6ddec40b
+          image: 185796529499.dkr.ecr.us-east-1.amazonaws.com/togglemaster/auth-service:e9b364aa7473
           imagePullPolicy: Always
           ports:
             - containerPort: 8001
@@ -24,6 +24,21 @@ spec:
                 name: auth-service-config
             - secretRef:
                 name: auth-service-secret
+          env:
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: OTEL_SERVICE_NAME
+              value: auth-service
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://$(NODE_IP):4317
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: grpc
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: deployment.environment=dev,service.namespace=togglemaster
+            - name: OTEL_SEMCONV_STABILITY_OPT_IN
+              value: http
           resources:
             requests:
               cpu: 100m

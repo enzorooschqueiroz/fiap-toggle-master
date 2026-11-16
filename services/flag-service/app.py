@@ -8,6 +8,8 @@ from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from functools import wraps
 import logging
+import random
+import threading
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -18,6 +20,7 @@ app = Flask(__name__)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL")
+MASTER_KEY = os.getenv("MASTER_KEY")
 
 if not DATABASE_URL or not AUTH_SERVICE_URL:
     log.critical("Erro: DATABASE_URL e AUTH_SERVICE_URL devem ser definidos.")
@@ -55,6 +58,51 @@ def require_auth(f):
 
         return f(*args, **kwargs)
     return decorated
+
+class Chaos:
+    """Injeção de falhas para a demo de alerta + self-healing.
+    Estado apenas em memória: um rollout restart volta a taxa para 0."""
+
+    def __init__(self):
+        self._rate = 0
+        self._lock = threading.Lock()
+
+    def set_rate(self, rate):
+        with self._lock:
+            self._rate = rate
+
+    @property
+    def rate(self):
+        with self._lock:
+            return self._rate
+
+
+chaos = Chaos()
+
+
+@app.before_request
+def inject_chaos():
+    if request.path == "/health" or request.path.startswith("/admin/"):
+        return None
+    rate = chaos.rate
+    if rate > 0 and random.randint(1, 100) <= rate:  # nosec B311 - não é uso criptográfico
+        log.error(f"[CHAOS] erro injetado em {request.method} {request.path} (error_rate={rate}%)")
+        return jsonify({"error": "chaos: falha injetada"}), 500
+    return None
+
+
+@app.route('/admin/chaos', methods=['POST'])
+def set_chaos():
+    if not MASTER_KEY or request.headers.get("Authorization") != f"Bearer {MASTER_KEY}":
+        return jsonify({"error": "Acesso não autorizado"}), 401
+    data = request.get_json(silent=True) or {}
+    rate = data.get("error_rate")
+    if not isinstance(rate, int) or isinstance(rate, bool) or not 0 <= rate <= 100:
+        return jsonify({"error": "error_rate deve ser um inteiro entre 0 e 100"}), 400
+    chaos.set_rate(rate)
+    log.warning(f"[CHAOS] error_rate ajustado para {rate}%")
+    return jsonify({"error_rate": rate}), 200
+
 
 @app.route('/health')
 def health():

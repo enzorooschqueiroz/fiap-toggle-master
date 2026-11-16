@@ -34,3 +34,6 @@ Thumbs.db
 *.plan
 /services/auth-service/auth-service
 /services/evaluation-service/evaluation-service
+
+# Observabilidade (Fase 4)
+.env.observability

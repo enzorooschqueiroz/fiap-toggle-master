@@ -81,14 +81,20 @@ jobs:
         working-directory: services/${{ matrix.service }}
         run: |
           trivy fs --format sarif --output trivy-scad.sarif \
-            --severity CRITICAL,HIGH --ignore-unfixed . || true
+            --severity CRITICAL,HIGH --ignore-unfixed .
 
       - name: Upload SCA SARIF to GitHub Security tab
         if: always()
         continue-on-error: true
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: trivy-scad.sarif
+          sarif_file: services/${{ matrix.service }}/trivy-scad.sarif
+
+      - name: SCA gate - bloqueia CVE CRÍTICA corrigível
+        working-directory: services/${{ matrix.service }}
+        run: |
+          trivy fs --ignorefile "$GITHUB_WORKSPACE/.trivyignore" \
+            --severity CRITICAL --ignore-unfixed --exit-code 1 .
 
       # 4. Security Scan - SAST (source code)
       - name: SAST - gosec

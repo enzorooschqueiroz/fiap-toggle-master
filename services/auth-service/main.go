@@ -1,13 +1,18 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/XSAM/otelsql"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/joho/godotenv"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
 // App struct (para injeção de dependência)
@@ -34,6 +39,16 @@ func main() {
 		log.Fatal("MASTER_KEY deve ser definida")
 	}
 
+	shutdown, err := setupTelemetry(context.Background(), "auth-service")
+	if err != nil {
+		log.Fatalf("Falha ao iniciar OpenTelemetry: %v", err)
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = shutdown(ctx)
+	}()
+
 	db, err := connectDB(databaseURL)
 	if err != nil {
 		log.Fatalf("Não foi possível conectar ao banco de dados: %v", err)
@@ -52,14 +67,23 @@ func main() {
 
 	mux.Handle("/admin/keys", app.masterKeyAuthMiddleware(http.HandlerFunc(app.createKeyHandler)))
 
+	chaos := &Chaos{}
+	mux.Handle("/admin/chaos", app.masterKeyAuthMiddleware(http.HandlerFunc(chaos.AdminHandler)))
+
+	handler := otelhttp.NewHandler(chaos.Middleware(mux), "auth-service",
+		otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
+			return r.Method + " " + r.URL.Path
+		}))
+
 	log.Printf("Serviço de Autenticação (Go) rodando na porta %s", port)
-	if err := http.ListenAndServe(":"+port, mux); err != nil {
+	if err := http.ListenAndServe(":"+port, handler); err != nil {
 		log.Fatal(err)
 	}
 }
 
 func connectDB(databaseURL string) (*sql.DB, error) {
-	db, err := sql.Open("pgx", databaseURL)
+	db, err := otelsql.Open("pgx", databaseURL,
+		otelsql.WithAttributes(semconv.DBSystemPostgreSQL))
 	if err != nil {
 		return nil, err
 	}

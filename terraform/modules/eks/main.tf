@@ -35,7 +35,7 @@ variable "node_desired_size" {
 
 variable "node_max_size" {
   type    = number
-  default = 4
+  default = 3
 }
 
 variable "node_min_size" {
@@ -45,7 +45,7 @@ variable "node_min_size" {
 
 variable "node_instance_types" {
   type    = list(string)
-  default = ["t3.small"]
+  default = ["m7i-flex.large"]
 }
 
 data "aws_caller_identity" "current" {}
@@ -87,7 +87,7 @@ resource "aws_iam_role_policy_attachment" "eks_service_policy" {
 resource "aws_eks_cluster" "main" {
   name     = var.cluster_name
   role_arn = aws_iam_role.eks_cluster.arn
-  version  = "1.31"
+  version  = "1.37"
 
   vpc_config {
     subnet_ids              = concat(var.private_subnet_ids, var.public_subnet_ids)
@@ -96,7 +96,7 @@ resource "aws_eks_cluster" "main" {
     security_group_ids      = [aws_security_group.eks_cluster.id]
   }
 
-  enabled_cluster_log_types = ["api", "audit", "authenticator"]
+  enabled_cluster_log_types = ["api", "authenticator"]
 
   depends_on = [
     aws_iam_role_policy_attachment.eks_cluster_policy,
@@ -169,6 +169,25 @@ resource "aws_iam_role_policy_attachment" "eks_node_cw" {
   role       = aws_iam_role.eks_node_group.name
 }
 
+# Hop limit 2: pods (rede própria) precisam alcançar o IMDSv2 para usar a role do nó.
+resource "aws_launch_template" "nodes" {
+  name_prefix = "${var.project_name}-nodes-"
+
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Environment = var.environment
+      Project     = var.project_name
+    }
+  }
+}
+
 resource "aws_eks_node_group" "main" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "${var.project_name}-node-group"
@@ -182,6 +201,11 @@ resource "aws_eks_node_group" "main" {
   }
 
   instance_types = var.node_instance_types
+
+  launch_template {
+    id      = aws_launch_template.nodes.id
+    version = aws_launch_template.nodes.latest_version
+  }
 
   update_config {
     max_unavailable = 1
@@ -225,4 +249,7 @@ output "cluster_role_arn" {
 
 output "node_group_arn" {
   value = aws_eks_node_group.main.arn
+}
+output "node_role_name" {
+  value = aws_iam_role.eks_node_group.name
 }
