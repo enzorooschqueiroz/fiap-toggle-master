@@ -37,6 +37,8 @@ spec:
               value: grpc
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: deployment.environment=dev,service.namespace=togglemaster
+            - name: OTEL_SEMCONV_STABILITY_OPT_IN
+              value: http
           resources:
             requests:
               cpu: 100m
