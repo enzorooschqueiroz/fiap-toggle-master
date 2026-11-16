@@ -35,7 +35,7 @@ variable "node_desired_size" {
 
 variable "node_max_size" {
   type    = number
-  default = 4
+  default = 3
 }
 
 variable "node_min_size" {
@@ -45,7 +45,7 @@ variable "node_min_size" {
 
 variable "node_instance_types" {
   type    = list(string)
-  default = ["t3.small"]
+  default = ["m7i-flex.large"]
 }
 
 data "aws_caller_identity" "current" {}
@@ -87,7 +87,7 @@ resource "aws_iam_role_policy_attachment" "eks_service_policy" {
 resource "aws_eks_cluster" "main" {
   name     = var.cluster_name
   role_arn = aws_iam_role.eks_cluster.arn
-  version  = "1.31"
+  version  = "1.37"
 
   vpc_config {
     subnet_ids              = concat(var.private_subnet_ids, var.public_subnet_ids)
@@ -96,7 +96,7 @@ resource "aws_eks_cluster" "main" {
     security_group_ids      = [aws_security_group.eks_cluster.id]
   }
 
-  enabled_cluster_log_types = ["api", "audit", "authenticator"]
+  enabled_cluster_log_types = ["api", "authenticator"]
 
   depends_on = [
     aws_iam_role_policy_attachment.eks_cluster_policy,
