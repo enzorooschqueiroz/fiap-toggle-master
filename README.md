@@ -109,17 +109,7 @@ curl "http://localhost:8004/evaluate?user_id=user-123&flag_name=enable-new-dashb
 
 ## Kubernetes Deployment
 
-The `k8s/` directory contains manifests for deploying on AWS EKS:
-
-```bash
-kubectl apply -f k8s/00-namespaces.yaml
-kubectl apply -f k8s/auth-service/
-kubectl apply -f k8s/flag-service/
-kubectl apply -f k8s/targeting-service/
-kubectl apply -f k8s/evaluation-service/
-kubectl apply -f k8s/analytics-service/
-kubectl apply -f k8s/ingress.yaml
-```
+Os manifests vivem apenas em `gitops/` (fonte única da verdade), sincronizados pelo ArgoCD — veja a seção Fase 3.
 
 ### Prerequisites
 
@@ -140,7 +130,6 @@ kubectl apply -f k8s/ingress.yaml
 │   └── flags/                 # flags + targeting schema
 ├── docker-compose.yml         # Local development environment
 ├── docs/                      # API collections (Postman, Insomnia) + setup guides
-├── k8s/                       # Kubernetes manifests (legado fase 2)
 ├── gitops/                    # [FASE 3] Manifests GitOps monitorados pelo ArgoCD
 │   ├── argocd/application.yaml
 │   ├── auth-service/base.yaml

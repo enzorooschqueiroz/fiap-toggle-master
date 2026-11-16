@@ -16,7 +16,7 @@ fi
 
 echo "==> Atualizando manifests (placeholder 000000000000 -> ${ACCOUNT_ID})..."
 
-grep -rl "000000000000" gitops/ k8s/ 2>/dev/null | while read -r file; do
+grep -rl "000000000000" gitops/ 2>/dev/null | while read -r file; do
   sed -i "s|000000000000|${ACCOUNT_ID}|g" "${file}"
   echo "  OK  ${file}"
 done
