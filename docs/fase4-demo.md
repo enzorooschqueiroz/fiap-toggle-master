@@ -7,7 +7,7 @@ gerador de carga rodando há ≥ 10 min (dashboard com dados).
 
 ```bash
 # T1 — port-forwards
-kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80 &
+kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3300:80 &
 kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090 &
 kubectl port-forward -n monitoring svc/kube-prometheus-stack-alertmanager 9093:9093 &
 kubectl port-forward -n argocd svc/argocd-server 8080:443 &
@@ -24,7 +24,7 @@ kubectl get pods -n flag -w
 kubectl logs -n self-healing deploy/self-healer -f
 ```
 
-Abas: ArgoCD (8080), Grafana (3000), New Relic (APM + Service Map), PagerDuty (Incidents), Discord (canal).
+Abas: ArgoCD (8080), Grafana (3300), New Relic (APM + Service Map), PagerDuty (Incidents), Discord (canal).
 
 ## 1. Visão geral — 3 min
 - Diagrama da arquitetura (README, seção Fase 4).

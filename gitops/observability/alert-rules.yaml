@@ -32,7 +32,7 @@ spec:
               A taxa de erros HTTP 5xx do {{ $labels.service_name }} está acima de 5% há mais de 2 minutos.
               Self-healing automático: rollout restart do deployment (cooldown 10 min).
             runbook_url: https://github.com/enzorooschqueiroz/fiap-toggle-master/blob/master/docs/runbooks/high-5xx.md
-            dashboard_url: http://localhost:3000/d/togglemaster-health
+            dashboard_url: http://localhost:3300/d/togglemaster-health
         - alert: ToggleMasterHighLatencyP95
           expr: |
             histogram_quantile(0.95,
